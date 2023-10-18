@@ -2,31 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
-import { BrowserRouter, Router, Route, Routes } from 'react-router-dom'
-import { initializeApp } from 'firebase/app';
-import firebaseConfig from './firebase.config.json'
-import { getAuth } from 'firebase/auth';
-
-const firebaseApp = initializeApp(firebaseConfig)
-const auth = getAuth(firebaseApp)
-import Dashboard from './pages/dashboard';
-import Auth from './pages/auth';
-
+import Root from './Root';
 const root = ReactDOM.createRoot(document.getElementById('root'));
-const isAuthenticated = !!auth.currentUser
-
 root.render(
   // <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path='/' element={isAuthenticated ?<Dashboard /> : <Auth />} />
-        {isAuthenticated ? 
-          <Route path='/home' element={<Dashboard />} /> :
-          <Route path='/auth' element={<Auth />} />
-        }
-        <Route path='*' element={isAuthenticated ?<Dashboard /> : <Auth />} />
-      </Routes>
-    </BrowserRouter>
+    <Root />
   // </React.StrictMode>
 );
 

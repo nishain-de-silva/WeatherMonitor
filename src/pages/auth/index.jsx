@@ -3,11 +3,13 @@ import './App.css';
 import background from './login-background.jpg'
 import { useMemo, useState } from 'react';
 import Network from '../../Network';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, getAuth } from 'firebase/auth'
-import { checkForExistence, isPasswordsMatch } from '../../services/validationService';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, getAuth, updateCurrentUser } from 'firebase/auth'
+import { checkForExistence, getEmailErrorMessage, isPasswordsMatch } from '../../services/validationService';
+import { useNavigate } from 'react-router-dom';
 
 const auth = getAuth()
 function Auth() {
+  const navigate = useNavigate()
   const [isLogin, setIsLogin] = useState(true)
   const [alertMessage, setAlertMessage] = useState('')
 
@@ -29,17 +31,17 @@ function Auth() {
     }, 3500)
   }
 
-  const emailErrorMessage = useMemo(() => isEmailVailid(email), [email])
+  const emailErrorMessage = useMemo(() => getEmailErrorMessage(email), [email])
 
-  const onButtonPress = async () => {
+  const signInOrSignUp = async () => {
     if (isLogin) {
       const errorMessage = checkForExistence({ email, password }) || emailErrorMessage
       if (errorMessage) {
         setAlertMessage(errorMessage)
         return
       }
-      signInWithEmailAndPassword(auth, details.email, details.password).then((credentials) => {
-        setAlertMessage
+      signInWithEmailAndPassword(auth, email, password).then((credentials) => {
+        navigate('/home')
       }).catch(({ code }) => {
         console.log(code)
       })
@@ -52,8 +54,11 @@ function Auth() {
         setAlertMessage(errorMessage)
         return
       }
+
       createUserWithEmailAndPassword(auth, email, password).then((credentials) => {
-        window.location.href = "/home"
+        credentials.user.displayName = username
+        updateCurrentUser(auth, credentials.user)
+        navigate('/home')
       }).catch(({ code }) => {
         console.log(code)
       })
@@ -97,13 +102,17 @@ function Auth() {
             <input
               class="form-control p-3"
               value={password}
+              type='password'
               onChange={onChange(setPassword)}
               placeholder="Password" />
+              {isLogin && <button type="button" class="btn float-left btn-link">Forgot password</button>}
+
           </div>
           {!isLogin && <div class="mb-3">
             <input
               class="form-control p-3"
               value={confirmPassword}
+              type='password'
               onChange={onChange(setConfirmPassword)}
               placeholder="Confirm Password" />
           </div>}
@@ -113,7 +122,7 @@ function Auth() {
 
           <button
             className='btn fw-bold btn-primary'
-            onClick={onButtonPress}
+            onClick={signInOrSignUp}
             style={{ backgroundImage: 'linear-gradient(to right bottom, rgb(0 178 244), rgb(91 151 229))' }}
           >
             {isLogin ? "Login" : "Sign Up"}

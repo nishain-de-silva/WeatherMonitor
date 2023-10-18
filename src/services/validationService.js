@@ -1,18 +1,18 @@
 export function checkForExistence(fields) {
     const emptyFields = []
-    for(const field of Object.values(fields)) {
-        if(!fields[field]) emptyFields.push(field)
+    for(const fieldName in fields) {
+        if(!fields[fieldName]) emptyFields.push(fieldName)
     }
-    if(emptyFields.length) 
+    if(emptyFields.length)
         return `Please provide ${emptyFields.join(', ')}. They cannot be empty`
     return undefined
 }
 
-export function isEmailValid(email) {
+export function getEmailErrorMessage(email) {
     const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/
     if(emailRegex.test(email))
-        return 'please provide valid email address'
-    return undefined
+        return undefined
+    return 'please provide valid email address'
 }
 
 export function isPasswordsMatch(password, confirmPassword) {

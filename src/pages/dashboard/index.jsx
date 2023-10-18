@@ -5,6 +5,8 @@ import Post from './components/Post'
 import { useEffect, useState } from 'react'
 import Network from '../../Network'
 import { getAuth } from 'firebase/auth'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../services/authProvider'
 
 const styles = {
     icon: {
@@ -34,7 +36,6 @@ const styles = {
 const auth = getAuth()
 
 function Dashboard() {
-
     const [captureDescription, setCaptureDescription] = useState(false)
     const [description, setDescription] = useState("")
     const [posts, setPosts] = useState([])
@@ -43,6 +44,7 @@ function Dashboard() {
         email: '',
         profilePicture: ''
     })
+    const navigate = useNavigate()
 
     const refreshPosts = async () => {
         const result = await Network.get('photo')
@@ -54,21 +56,21 @@ function Dashboard() {
 
     const logout = async () => {
         await auth.signOut()
-        window.location.href = "/auth"
+        navigate('auth')
     }
 
     useEffect(() => {
-        Network.get('user/profile').then((result) => {
-            const fetchedData = result.data.profile
+        // Network.get('user/profile').then((result) => {
+        //     const fetchedData = result.data.profile
             
-            const profileData = {
-                name: fetchedData.name,
-                email: fetchedData.email,
-                profilePicture: fetchedData.profilePicture
-            }
-            setUserInfo(profileData)
-        })
-        refreshPosts()
+        //     const profileData = {
+        //         name: fetchedData.name,
+        //         email: fetchedData.email,
+        //         profilePicture: fetchedData.profilePicture
+        //     }
+        //     setUserInfo(profileData)
+        // })
+        // refreshPosts()
     }, [])
 
     const loadComments = async (postId) => {
@@ -172,12 +174,14 @@ function Dashboard() {
         }
     }
 
+    const { user } = useAuth()
+
     return <div className="Dashboard">
         <nav class="navbar navbar-expand-lg navbar-light" style={{
             backgroundImage: 'linear-gradient(to left top, #8e00ff, #00ffdb)'
         }}>
             <div class="container-fluid">
-                <a class="navbar-brand" href="#">Photo Sharing</a>
+                <a class="navbar-brand" href="#">{`Welcome ${user.displayName}`}</a>
                 <div>
                     <button
                         className='btn ms-3'
