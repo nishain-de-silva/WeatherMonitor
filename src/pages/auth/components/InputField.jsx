@@ -29,8 +29,8 @@ export default ({ placeholder, name, state, addtionalComponent = null }) => {
             class={`form-control p-3`}
             value={values[name]}
             onChange={handleChange}
+            required
             placeholder={placeholder} />
         {renderErrorMessage()}
-        {addtionalComponent}
     </div>
 }

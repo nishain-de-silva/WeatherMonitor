@@ -1,4 +1,6 @@
+import markerIcon from '../dashboard/assets/marker.png'
 import logoutIcon from '../dashboard/assets/logout.png'
+
 import blankProfile from '../dashboard/assets/blankProfile.webp'
 import EditableField from './components/EditableField'
 import Post from './components/Post'
@@ -7,11 +9,19 @@ import Network from '../../Network'
 import { getAuth } from 'firebase/auth'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/authProvider'
+import GoogleMap from 'google-map-react';
+import axios from 'axios'
+import sampleData from './assets/sampleData.json'
+import WeatherItem from './components/WeatherItem'
 
 const styles = {
     icon: {
-        height: 20,
-        width: 20,
+        height: 30,
+        width: 30,
+    },
+    temperatureIcon: {
+        height: 30,
+        width: 30
     },
     navButton: {
         backgroundColor: 'white'
@@ -34,145 +44,62 @@ const styles = {
 }
 
 const auth = getAuth()
+const mapAPIKey = process.env.REACT_APP_GOOGLE_MAP_API
 
 function Dashboard() {
     const [captureDescription, setCaptureDescription] = useState(false)
     const [description, setDescription] = useState("")
     const [posts, setPosts] = useState([])
-    const [userInfo, setUserInfo] = useState({
-        name: '',
-        email: '',
-        profilePicture: ''
-    })
+    const [geoCoordinate, setGeoCoordinate] = useState(null)
+    const [positionInput, setPositionInput] = useState('')
+    const [weatherData, setWeatherData] = useState([])
+
     const navigate = useNavigate()
 
-    const refreshPosts = async () => {
-        const result = await Network.get('photo')
-
-        if (result.data.success) {
-            setPosts(result.data.data)
-        }
-    }
+    useEffect(() => {
+        const date = new Date()
+        
+        setWeatherData(sampleData.daily.map(d => {
+            d.dateString = date.toDateString()
+            date.setDate(date.getDate() + 1)
+            return d
+        }))
+    }, [])
 
     const logout = async () => {
         await auth.signOut()
         navigate('auth')
     }
 
+    const onPositionTextChange = (event) => {
+        const value = event.target.value
+        const absolutePositon = /^[0-9]+\.[0-9]+,\s*[0-9]+\.[0-9]+$/g
+        if (absolutePositon.test(value)) {
+            const matches = value.split(/,\s+/)
+            console.log(matches)
+            const latLng = {
+                lat: parseFloat(matches[0]),
+                lng: parseFloat(matches[1])
+            }
+            setGeoCoordinate(latLng)
+        } else {
+            axios.get('https://maps.googleapis.com/maps/api/geocode/json',
+                {
+                    params: {
+                        key: mapAPIKey,
+                        address: value
+                    }
+                }).then((result) => {
+                    const { data } = result
+                    setGeoCoordinate(data.results[0].geometry.location)
+                })
+        }
+
+    }
+
     useEffect(() => {
-        // Network.get('user/profile').then((result) => {
-        //     const fetchedData = result.data.profile
-            
-        //     const profileData = {
-        //         name: fetchedData.name,
-        //         email: fetchedData.email,
-        //         profilePicture: fetchedData.profilePicture
-        //     }
-        //     setUserInfo(profileData)
-        // })
-        // refreshPosts()
-    }, [])
-
-    const loadComments = async (postId) => {
-        const comments = await Network.get(`photo/${postId}/comment`)
-        if(comments.data.success) {
-            const index = posts.findIndex((post) => post.id == postId)
-            posts[index].comments = comments.data.comments
-            setPosts([...posts])
-        }
-        
-    }
-
-    const addComment = async (comment, postId) => {
-        if(!comment) return
-        const comments = await Network.post(`photo/${postId}/comment`, {
-            comment
-        })
-        if(comments.data.success) {
-            const index = posts.findIndex((post) => post.id == postId)
-            
-            posts[index].comments = comments.data.comments
-            setPosts([...posts])
-        }
-    }
-
-    const onPublishPhoto = (event) => {
-        const reader = new FileReader()
-        reader.onload = async () => {
-            const result = await Network.post('photo', {
-                image: reader.result,
-                description
-            })
-
-            if (result.data.success) {
-                setDescription("")
-                setCaptureDescription(false)
-                refreshPosts()
-            }
-        }
-        reader.readAsDataURL(event.currentTarget.getElementsByTagName('input')[0].files[0])
-    }
-
-    const cancelPhotoPost = () => {
-        setCaptureDescription(false)
-        setDescription("")
-    }
-
-    const onProfilePictureChange = (event) => {
-        const reader = new FileReader()
-        reader.onload = async () => {
-            const result = await Network.put('user/profile', {
-                profilePicture: reader.result
-            })
-            setUserInfo({
-                ...userInfo,
-                profilePicture: result.data.profile.profilePicture
-            })
-        }
-
-        reader.readAsDataURL(event.target.files[0])
-    }
-
-    const onProfileChange = (attributeName) => {
-        return async (value) => {
-            const result = await Network.put('user/profile', {
-                [attributeName]: value
-            })
-
-            if(attributeName == "password") return
-            setUserInfo({
-                ...userInfo,
-                [attributeName]: result.data.profile[attributeName]
-            })
-        }
-    }
-
-    const onFileUploadClick = (event) => {
-        event.currentTarget.getElementsByTagName('input')[0].value = ''
-        event.currentTarget.getElementsByTagName('input')[0].click()
-    }
-
-    const onReacted = async (reactionType, didReacted, id) => {
-        const result = await Network.put('photo/react', { type: reactionType, reacted: didReacted, id })
-        if(result.data.success) {
-            const updatedReactions = result.data.updatedReactions
-            const index = posts.findIndex((post) => post.id == id)
-            
-            const { like, dislike, love, funny, selfReaction } = updatedReactions
-            posts[index] = {
-                ...posts[index],
-                like, dislike, love, funny, selfReaction
-            }
-            setPosts([...posts])
-        }
-    }
-
-    const deletePost = async (postId) => {
-        const result = await Network.delete(`photo/${postId}`)
-        if(result.data.success) {
-            refreshPosts()
-        }
-    }
+        console.log({ geoCoordinate })
+    }, [geoCoordinate])
 
     const { user } = useAuth()
 
@@ -195,66 +122,37 @@ function Dashboard() {
         </nav>
         <div className='row container-fluid'>
             <div className='col-4 p-4'>
-                <div className='m-auto card'>
-                    <div className='card-body ps-3'>
-                        <h5 className='card-title'>Profile</h5>
-                        <div className='col col-gutter'>
-                            <div className='d-flex  align-items-center'>
-                                <img src={userInfo.profilePicture || blankProfile} style={styles.profilePicture} />
-                                <button className='ms-2 btn btn-primary' onClick={onFileUploadClick}>
-                                    <input type="file" hidden onChange={onProfilePictureChange} />
-                                    Change
-                                </button>
-                            </div>
+                <input
+                    placeholder='Latitude, Longitude or address name'
+                    type="text" class="form-control"
+                    onChange={onPositionTextChange}
+                />
+                <div className='card mt-3' style={{ height: '40%', width: '100%' }}>
+                    {!!geoCoordinate && <div style={{ height: '100%', width: '100%' }}>
+                        <GoogleMap
+                            defaultZoom={12}
+                            bootstrapURLKeys={{ key: mapAPIKey }}
+                            center={geoCoordinate}
+                        >
+                            <img
+                                lat={geoCoordinate.lat}
+                                lng={geoCoordinate.lng}
+                                src={markerIcon} style={styles.icon} />
+                        </GoogleMap>
 
-                            <EditableField value={userInfo.name} setvalue={onProfileChange('name')} />
-                            <EditableField value={userInfo.email} setvalue={onProfileChange('email')} />
-                            <EditableField value={userInfo.password} isPassword setvalue={onProfileChange('password')} />
-
-                            {captureDescription && <div className='my-3 row'>
-                                <label class="form-label">Tell something photo</label>
-                                <textarea class="form-control" value={description}
-                                    onChange={
-                                        (e) => setDescription(e.target.value)
-                                    }
-                                    rows="3"
-                                />
-                            </div>}
-                            <div className='row d-flex justify-content-center'>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={captureDescription ? onPublishPhoto : onFileUploadClick} >
-                                    <input type="file"
-                                        onChange={() => { setCaptureDescription(true) }}
-                                        hidden accept="image/png, image/gif, image/jpeg" />
-                                    Post Photo
-                                </button>
-                                {captureDescription && <button
-                                    onClick={cancelPhotoPost}
-                                    className='mt-3 btn btn-danger' >
-                                    Cancel
-                                </button>}
-                            </div>
-
-                        </div>
-                    </div>
+                    </div>}
                 </div>
             </div>
             <div
-                className='col-8'
+                className='col'
                 style={styles.photoListContainer}>
                 {
-                    posts.map((post) =>
-                        <Post
-                            key={post.id}
-                            data={post}
-                            setReaction={onReacted}
-                            loadComments={loadComments}
-                            postComment={addComment}
-                            deletePost={deletePost}
-                        />)
+                    weatherData.map((data) => <WeatherItem data={data} />)
                 }
-
+                <button className='btn btn-primary m-3 w-auto'>
+                See more
+                </button>
+                
             </div>
 
 
