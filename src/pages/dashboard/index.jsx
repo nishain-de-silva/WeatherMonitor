@@ -4,7 +4,7 @@ import logoutIcon from '../dashboard/assets/logout.png'
 import blankProfile from '../dashboard/assets/blankProfile.webp'
 import EditableField from './components/EditableField'
 import Post from './components/Post'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Network from '../../Network'
 import { getAuth } from 'firebase/auth'
 import { NavLink, Navigate, useNavigate } from 'react-router-dom'
@@ -50,7 +50,9 @@ const weatherAPIKey = process.env.REACT_APP_WEATHER_API_KEY
 function Dashboard() {
     const [geoCoordinate, setGeoCoordinate] = useState(null)
     const [weatherData, setWeatherData] = useState([])
-
+    const [showFullData, setShowFullData] = useState(false)
+    const [geoText, setGeoText] = useState('')
+    const [showExplictSearchBtn, setShowExplictSearchBtn] = useState(false)
     const navigate = useNavigate()
 
     // useEffect(() => {
@@ -68,18 +70,23 @@ function Dashboard() {
         navigate('auth')
     }
 
-    const onPositionTextChange = (event) => {
-        const value = event.target.value
+    const showMoreData = () => {
+        setShowFullData(true)
+    }
+    const proccessGeoText = (value) => {
         const absolutePositon = /^[0-9]+\.[0-9]+,\s*[0-9]+\.[0-9]+$/g
         if (absolutePositon.test(value)) {
             const matches = value.split(/,\s+/)
-            console.log(matches)
             const latLng = {
                 lat: parseFloat(matches[0]),
                 lng: parseFloat(matches[1])
             }
             setGeoCoordinate(latLng)
         } else {
+            if(!value) {
+                setGeoCoordinate(null)
+                return
+            }
             axios.get('https://maps.googleapis.com/maps/api/geocode/json',
                 {
                     params: {
@@ -91,7 +98,20 @@ function Dashboard() {
                     setGeoCoordinate(data.results[0].geometry.location)
                 })
         }
+    }
 
+    const onGeoPositionTextChange = (event) => {
+        const value = event.target.value
+        const oldValue = geoText
+        setGeoText(value)
+        if (Math.abs(value.length - oldValue.length) > 2) {
+            if(showExplictSearchBtn) setShowExplictSearchBtn(false)
+            proccessGeoText(value) // text copied
+        } else if(!showExplictSearchBtn) setShowExplictSearchBtn(true)
+    }
+
+    const handleSearchGeoText = () => {
+        proccessGeoText(geoText)
     }
 
     useEffect(() => {
@@ -112,10 +132,15 @@ function Dashboard() {
                 })
                 setWeatherData(parsedData)
             })
-        }
+        } else if(weatherData.length) setWeatherData([]) // clear data...
     }, [geoCoordinate])
 
     const { user } = useAuth()
+
+    const presentingData = useMemo(() => {
+        if(!showFullData) return weatherData.slice(0, 3)
+        return weatherData
+    }, [showMoreData])
 
     return <div className="container-fluid background-cover">
         <nav class="navbar navbar-expand-lg navbar-light shadow bg-light mb-2" >
@@ -138,8 +163,12 @@ function Dashboard() {
                 <input
                     placeholder='Latitude, Longitude or address name'
                     type="text" class="form-control"
-                    onChange={onPositionTextChange}
+                    value={geoText}
+                    onChange={onGeoPositionTextChange}
                 />
+                {showExplictSearchBtn && <button onClick={handleSearchGeoText} className='mt-3 btn btn-outline-primary'>
+                    Search
+                </button>}
                 <div className='card mt-3' style={{ height: '40%', width: '100%' }}>
                     {!!geoCoordinate && <div style={{ height: '100%', width: '100%' }}>
                         <GoogleMap
@@ -158,10 +187,10 @@ function Dashboard() {
             </div>
             <div className='col my-2 rounded' style={styles.weatherContainer}>
                 {
-                    weatherData.map((data) => <WeatherItem data={data} />)
+                    presentingData.map((data) => <WeatherItem data={data} />)
                 }
                 <div className='row justify-content-center'>
-                {<button className='btn btn-primary m-3 w-auto'>
+                {!!weatherData.length && !showFullData && <button className='btn btn-primary m-3 w-auto'>
                 See more
                 </button>}
                 </div>
