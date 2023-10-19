@@ -1,7 +1,6 @@
-import { getFieldValidator } from "../../../services/validationService"
+import { getFieldValidator } from "../../services/validationService"
 
-export default ({ placeholder, name, state, addtionalComponent = null }) => {
-    const [values, setValues] = state
+export default ({ placeholder, name, values, setValues }) => {
     const handleChange = (event) => {
         setValues({
             ...values,
@@ -11,7 +10,7 @@ export default ({ placeholder, name, state, addtionalComponent = null }) => {
 
     const getType = () => {
         if (name === 'email') return 'email'
-        if (['confirmPassword', 'password'].includes(name)) return 'password'
+        if (name.toLowerCase().includes('password')) return 'password'
         return undefined
     }
 

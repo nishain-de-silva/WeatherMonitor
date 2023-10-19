@@ -34,7 +34,7 @@ const TemperatureCell = ({ title, icon, feelsLike, actual }) => {
 }
 
 export default ({ data }) => {
-    return <div className='row  justify-content-center'>
+    return <div className='row px-4 justify-content-center'>
         <div className='card m-2 w-auto'>
         <div className='card-body'>
             <h3>{data.dateString}</h3>

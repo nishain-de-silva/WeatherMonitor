@@ -19,7 +19,8 @@ function Auth() {
     signInWithEmailAndPassword(auth, email, password).then((credentials) => {
       navigate('/home')
     }).catch(({ code }) => {
-      console.log(code)
+      if (code == 'auth/invalid-login-credentials')
+        inputFormRef.current.showMessage('authenticated failed. Try again!')
     })
   }
 
@@ -33,36 +34,46 @@ function Auth() {
     })
   }
 
-  const requestPasswordReset = ({ email }) => {
-    sendPasswordResetEmail(email)
+  const requestPasswordReset = () => {
+    setShowForgetPasswordForm(true)
+  }
+
+  const onSubmitForgetPasswordEmail = ({ email }) => {
+    sendPasswordResetEmail(auth, email).then(() => {
+      forgetPasswordFormRef.current.onEmailSent('Email has sent!. Check your inbox')
+    })
   }
 
   const submitPasswordResetCode = ({ resetCode }) => {
-    verifyPasswordResetCode(resetCode)
+    verifyPasswordResetCode(auth, resetCode).then((recievedEmail) => {
+      if (recievedEmail != auth.currentUser.email) {
+        forgetPasswordFormRef.current.showError('Code is invalid. Try again')
+      }
+    })
   }
 
-  const updatePassword = ({ password }) => {
-
+  const onUpdateNewPassowrd = ({ password }) => {
+    console.log()
   }
 
   return (
-    <div className="App">
-      <div className="row">
-        <img src={background} className="col-8 border img-fluid bg-purple" style={{
-          backgroundImage: 'linear-gradient(to right bottom, #8e00ff, #00ffdb)'
-        }} />
-
-        <div class="col-4 p-4 text-black">
+    <div className='background-cover d-flex' style={{ height: '100vh' }}>
+      <div class="card shadow mx-auto align-self-center row" style={{ width: '40%' }}>
+        <div className='card-body'>
           {showForgetPasswordForm ? <PasswordResetForm
             ref={forgetPasswordFormRef}
-            onEmailSubmit={requestPasswordReset}
+            goBack={() => setShowForgetPasswordForm(false)}
+            onEmailSubmit={onSubmitForgetPasswordEmail}
             onResetCodeSubmit={submitPasswordResetCode}
-            onNewPasswordUpdate={updatePassword}
+            onNewPasswordUpdate={onUpdateNewPassowrd}
           /> :
-            <InputForm ref={inputFormRef} onSignIn={onSignIn} onRegister={onRegister} />}
+            <InputForm ref={inputFormRef}
+              onRequestPasswordReset={requestPasswordReset}
+              onSignIn={onSignIn} onRegister={onRegister} />}
         </div>
       </div>
     </div>
+
   );
 }
 

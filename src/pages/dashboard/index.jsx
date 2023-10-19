@@ -7,7 +7,7 @@ import Post from './components/Post'
 import { useEffect, useState } from 'react'
 import Network from '../../Network'
 import { getAuth } from 'firebase/auth'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { NavLink, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/authProvider'
 import GoogleMap from 'google-map-react';
 import axios from 'axios'
@@ -31,7 +31,7 @@ const styles = {
         color: 'white',
         fontWeight: 'bold'
     },
-    photoListContainer: {
+    weatherContainer: {
         backgroundColor: '#c1c1ea',
         height: '100vh',
         overflow: 'scroll'
@@ -45,26 +45,23 @@ const styles = {
 
 const auth = getAuth()
 const mapAPIKey = process.env.REACT_APP_GOOGLE_MAP_API
+const weatherAPIKey = process.env.REACT_APP_WEATHER_API_KEY
 
 function Dashboard() {
-    const [captureDescription, setCaptureDescription] = useState(false)
-    const [description, setDescription] = useState("")
-    const [posts, setPosts] = useState([])
     const [geoCoordinate, setGeoCoordinate] = useState(null)
-    const [positionInput, setPositionInput] = useState('')
     const [weatherData, setWeatherData] = useState([])
 
     const navigate = useNavigate()
 
-    useEffect(() => {
-        const date = new Date()
+    // useEffect(() => {
+    //     const date = new Date()
         
-        setWeatherData(sampleData.daily.map(d => {
-            d.dateString = date.toDateString()
-            date.setDate(date.getDate() + 1)
-            return d
-        }))
-    }, [])
+    //     setWeatherData(sampleData.daily.map(d => {
+    //         d.dateString = date.toDateString()
+    //         date.setDate(date.getDate() + 1)
+    //         return d
+    //     }))
+    // }, [])
 
     const logout = async () => {
         await auth.signOut()
@@ -98,30 +95,46 @@ function Dashboard() {
     }
 
     useEffect(() => {
-        console.log({ geoCoordinate })
+        if(geoCoordinate) {
+            axios.get('https://api.openweathermap.org/data/3.0/onecall', {
+                params: {
+                    lat: geoCoordinate.lat,
+                    lon: geoCoordinate.lng,
+                    appid: weatherAPIKey,
+                    exclude: 'minutely,hourly,alerts'
+                }
+            }).then(({data}) => {
+                const date = new Date()
+                const parsedData = data.daily.map(d => {
+                    d.dateString = date.toDateString()
+                    date.setDate(date.getDate() + 1)
+                    return d
+                })
+                setWeatherData(parsedData)
+            })
+        }
     }, [geoCoordinate])
 
     const { user } = useAuth()
 
-    return <div className="Dashboard">
-        <nav class="navbar navbar-expand-lg navbar-light" style={{
-            backgroundImage: 'linear-gradient(to left top, #8e00ff, #00ffdb)'
-        }}>
+    return <div className="container-fluid background-cover">
+        <nav class="navbar navbar-expand-lg navbar-light shadow bg-light mb-2" >
             <div class="container-fluid">
                 <a class="navbar-brand" href="#">{`Welcome ${user.displayName}`}</a>
                 <div>
+                    <NavLink to="/settings" className='btn btn-outline-success'>Settings</NavLink>
                     <button
-                        className='btn ms-3'
-                        style={styles.navButton}
+                        className='btn ms-3 btn-outline-success'
                         onClick={logout}
                     >
-                        <img src={logoutIcon} style={styles.icon} />
+                        Sign out
                     </button>
                 </div>
             </div>
         </nav>
         <div className='row container-fluid'>
-            <div className='col-4 p-4'>
+            <div className='col-4 p-4 card me-3 my-2'>
+                <h4>Select Location</h4>
                 <input
                     placeholder='Latitude, Longitude or address name'
                     type="text" class="form-control"
@@ -143,21 +156,17 @@ function Dashboard() {
                     </div>}
                 </div>
             </div>
-            <div
-                className='col'
-                style={styles.photoListContainer}>
+            <div className='col my-2 rounded' style={styles.weatherContainer}>
                 {
                     weatherData.map((data) => <WeatherItem data={data} />)
                 }
-                <button className='btn btn-primary m-3 w-auto'>
+                <div className='row justify-content-center'>
+                {<button className='btn btn-primary m-3 w-auto'>
                 See more
-                </button>
-                
+                </button>}
+                </div>
             </div>
-
-
         </div>
-
     </div>
 }
 

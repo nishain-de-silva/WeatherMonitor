@@ -20,12 +20,9 @@ export function checkValidation(fields) {
 }
 
 export function checkNonEmptyFields(fields) {
-    const emptyFields = []
     for(const fieldName in fields) {
-        if(!fields[fieldName]) emptyFields.push(fieldName)
+        if(!fields[fieldName]) return 'Please fill all the fields'
     }
-    if(emptyFields.length)
-        return `Please provide ${emptyFields.join(', ')}. They cannot be empty`
     return undefined
 }
 

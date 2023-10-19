@@ -18,6 +18,10 @@ body {
 .temperature-block span {
   font-size: small;
 }
+.background-cover { 
+  background: linear-gradient(to right bottom, #8e00ff, #00ffdb);
+   height: 100%
+}
 .close-button {
   display: flex;
   border-radius: 50%;

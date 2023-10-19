@@ -5,6 +5,7 @@ import Auth from './pages/auth';
 import ProtectedRoute from './pages/dashboard/components/ProtectedRoute';
 import { useEffect, useState } from 'react';
 import AuthContext from './context/authContext';
+import settings from './pages/settings';
 
 const router = createBrowserRouter([{
     path: '/',
@@ -13,6 +14,10 @@ const router = createBrowserRouter([{
         {
             path: '/',
             element: <Navigate to="/home" />
+        },
+        {
+            path: '/settings',
+            Component: settings
         },
         {
             path: '/home',
@@ -33,7 +38,7 @@ export default () => {
     const [user, setUser] = useState({ loading: true })
 
     useEffect(() => {
-        const unsubscriber = authProvider.onAuthStateChanged((user) => {
+        const unsubscriber = authProvider.onAuthStateChanged((user) => {       
             setUser(user)
         })
         return unsubscriber
